@@ -3,6 +3,7 @@
 	<name>Mensa-SH</name>
 	<comment></comment>
 	<projects>
+		<project>mensa-sh-parser</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

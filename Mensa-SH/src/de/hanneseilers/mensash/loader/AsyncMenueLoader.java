@@ -1,60 +1,62 @@
 package de.hanneseilers.mensash.loader;
 
+import java.util.List;
+
 import de.hanneseilers.mensash.CacheManager;
 import de.hanneseilers.mensash.activities.ActivityMain;
 import de.hanneseilers.mensash.enums.LoadingProgress;
+import de.mensa.sh.core.Meal;
 import de.mensa.sh.core.Mensa;
 import android.os.AsyncTask;
 
-public class AsyncMenueLoader extends AsyncTask<String, Integer, String> {
+public class AsyncMenueLoader extends AsyncTask<String, Integer, List<Meal>> {
 
 	private ActivityMain ctx;
+	private Mensa selectedMensa;
 	
 	public AsyncMenueLoader(ActivityMain ctx){
 		super();
 		this.ctx = ctx;
 	}
 	
+	@Override
+	protected void onPreExecute() {
+		ctx.setLoadingProgress(LoadingProgress.INIT);
+	}
+	
 	/**
 	 * Gets cities
 	 */
 	@Override
-	protected String doInBackground(String... params) {
+	protected List<Meal> doInBackground(String... params) {
 		
 		// find mensa with params name
 		for( Mensa m : ctx.getLocations() ){
-			if( m.getName().equals(params[0]) ){
-				
-				String ret = "";
-				if( (ret = CacheManager.readCachedFile(ctx, "menue_"+m.getCity()+"_"+m.getName()))
-						== null ){
-					ret = m.getMenueAsHtml();
-					CacheManager.writeChachedFile( ctx, "menue_"+m.getCity()+"_"+m.getName(), ret );
-				}
-				
-				// set lunch time
-				ctx.setLunchTime(m.getLunchTime());
-				return ret;				
+			if( m.getName().equals(params[0]) ){				
+				selectedMensa = m;
+				return m.getMeals();				
 			}
 		}
 		
-		return "Kein Speiseplan gefunden!";
+		return null;
 	}
 	
 	/**
 	 * Adds cities to list
 	 */
 	@Override
-	protected void onPostExecute(String result) {
+	protected void onPostExecute(List<Meal> result) {
 		
 		// check if result is empty
-		if( result == "" ){
-			result = "<b>Kein Speiseplan gefunden!</b>";
+		if( result == null ){
+			ctx.setErrorMealList();
 		}
 		
 		// load menue
-		ctx.loadWebsiteHtml(result);
+		ctx.selectDrawerItem(ctx.locations.indexOf(selectedMensa));
+		ctx.setMealList(result);
 		ctx.setLoadingProgress(LoadingProgress.MENUE_LOADED);
+
 	}
 	
 }

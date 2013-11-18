@@ -1,46 +1,76 @@
 package de.hanneseilers.mensash.activities;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 
+import org.holoeverywhere.app.Activity;
+import org.holoeverywhere.preference.PreferenceManager;
+import org.holoeverywhere.preference.SharedPreferences;
+import org.holoeverywhere.widget.AdapterView;
+import org.holoeverywhere.widget.AdapterView.OnItemSelectedListener;
+import org.holoeverywhere.widget.ArrayAdapter;
+import org.holoeverywhere.widget.DrawerLayout;
+import org.holoeverywhere.widget.LinearLayout;
+import org.holoeverywhere.widget.ListView;
+import org.holoeverywhere.widget.ViewPager;
+
+import com.astuetz.viewpager.extensions.PagerSlidingTabStrip;
+
+import de.hanneseilers.mensash.MenuAdapter;
+import de.hanneseilers.mensash.MenuFragment;
+import de.hanneseilers.mensash.MenuFragment.OnFragmentInteractionListener;
+import de.hanneseilers.mensash.MenueFragmentPagerAdapter;
 import de.hanneseilers.mensash.R;
 import de.hanneseilers.mensash.CacheManager;
 import de.hanneseilers.mensash.enums.LoadingProgress;
 import de.hanneseilers.mensash.loader.AsyncCitiesLoader;
 import de.hanneseilers.mensash.loader.AsyncMensenLoader;
 import de.hanneseilers.mensash.loader.AsyncMenueLoader;
+import de.mensa.sh.core.Meal;
 import de.mensa.sh.core.Mensa;
+import android.net.Uri;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
-import android.app.Activity;
 import android.content.Intent;
-import android.content.SharedPreferences;
+import android.content.res.Configuration;
+
+
+import android.support.v4.app.ActionBarDrawerToggle;
+import android.util.Log;
+
+
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.webkit.WebView;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.LinearLayout;
-import android.widget.Spinner;
-import android.widget.TextView;
 
-public class ActivityMain extends Activity implements OnItemSelectedListener {
+import android.widget.SimpleAdapter;
+
+
+public class ActivityMain extends Activity implements OnItemSelectedListener, OnFragmentInteractionListener {
 	
 	private ArrayAdapter<String> adapterCity;
-	private ArrayAdapter<String> adapterMensa;
-	private WebView webView;
-	private TextView txtLunchTime;
-	private LinearLayout layoutLoading;
+	private SimpleAdapter adapterMensa;
 	
-	private List<Mensa> locations = new ArrayList<Mensa>();
-	
-	private Spinner spinnerCity;
-	private Spinner spinnerMensa;
+	public List<Mensa> locations = new ArrayList<Mensa>();
 	
 	private LoadingProgress progress = LoadingProgress.INIT;
 	private boolean firstSelection = true;
+	
+	private ArrayList<MenuFragment> menuFragments;
+	
+	private DrawerLayout mDrawerLayout;
+	private LinearLayout mDrawer;
+    public ListView mDrawerList;
+    private ActionBarDrawerToggle mDrawerToggle;
+    private CharSequence mDrawerTitle;
+    private CharSequence mTitle;
+    private ArrayList<HashMap<String,String>> drawerItemsList = new ArrayList<HashMap<String,String>>();
+	
+	// When requested, this adapter returns a DemoObjectFragment,
+    // representing an object in the collection.
+	MenueFragmentPagerAdapter mMenueFragmentPagerAdapter;
+    ViewPager mViewPager;
 	
 	
 	@Override
@@ -48,33 +78,101 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
-		// get spinners and webview
-		spinnerCity = (Spinner) findViewById(R.id.lstCity);
-		spinnerMensa = (Spinner) findViewById(R.id.lstMensa);
-		txtLunchTime = (TextView) findViewById(R.id.txtLunchTime);
-		webView = (WebView) findViewById(R.id.webView);
-		webView.getSettings().setLoadWithOverviewMode(true);
-		webView.getSettings().setUseWideViewPort(true);
-		webView.getSettings().setBuiltInZoomControls(true);
-		layoutLoading = (LinearLayout) findViewById(R.id.layout_loading);
+		// get spinners and webview	
+		mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+		mDrawer = (LinearLayout) findViewById(R.id.left_drawer);
+        mDrawerList = (ListView) findViewById(R.id.left_drawer_list);
 		
-		// add resources to spinnes
+		// add resources to spinners
 		adapterCity = new ArrayAdapter<String>(
 				this, android.R.layout.simple_spinner_item,
 				new ArrayList<String>());
-		adapterMensa = new ArrayAdapter<String>(
-				this, android.R.layout.simple_spinner_item,
-				new ArrayList<String>());
+		adapterMensa = new SimpleAdapter(
+				this, drawerItemsList, R.layout.drawer_list_item,
+				new String[] { "txtName","txtInfo" },
+				new int[] { R.id.txtName, R.id.txtInfo } );
 		
-		spinnerCity.setAdapter(adapterCity);
-		spinnerMensa.setAdapter(adapterMensa);
+		// Set the adapter for the drawer list view
+        mDrawerList.setAdapter(adapterMensa);
+        // Set the list's click listener
+        mDrawerList.setOnItemClickListener(new DrawerItemClickListener());
+        
+        mDrawerToggle = new ActionBarDrawerToggle(
+                this,                  /* host Activity */
+                mDrawerLayout,         /* DrawerLayout object */
+                R.drawable.ic_drawer,  /* nav drawer icon to replace 'Up' caret */
+                R.string.drawer_open,  /* "open drawer" description */
+                R.string.drawer_close  /* "close drawer" description */
+                ) {
+
+            /** Called when a drawer has settled in a completely closed state. */
+            public void onDrawerClosed(View view) {
+                getSupportActionBar().setTitle(mTitle);
+            }
+
+            /** Called when a drawer has settled in a completely open state. */
+            public void onDrawerOpened(View drawerView) {
+                getSupportActionBar().setTitle(mDrawerTitle);
+            }
+        };
+
+        // Set the drawer toggle as the DrawerListener
+        mDrawerLayout.setDrawerListener(mDrawerToggle);
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeButtonEnabled(true);
 		
-		addCities();
+		// setup tabs
+		// ViewPager and its adapters use support library
+        // fragments, so use getSupportFragmentManager.
+        mMenueFragmentPagerAdapter =
+                new MenueFragmentPagerAdapter(
+                        getSupportFragmentManager());
+        mViewPager = (ViewPager) findViewById(R.id.pager);
+        mViewPager.setAdapter(mMenueFragmentPagerAdapter);
+        
+        menuFragments = new ArrayList<MenuFragment>();
+        
+        int i;
+        for (i = 0; i <= 4; i++) {
+        	menuFragments.add((MenuFragment) mMenueFragmentPagerAdapter.addItem());
+    		menuFragments.get(i).adapterMeals = new MenuAdapter(this, menuFragments.get(i).listMeals );
+        }
+        
+        // Bind the widget to the adapter
+        PagerSlidingTabStrip tabs = (PagerSlidingTabStrip) findViewById(R.id.tabs);
+        tabs.setViewPager(mViewPager);
 		
-		spinnerCity.setOnItemSelectedListener(this);
-		spinnerMensa.setOnItemSelectedListener(this);
+		for (MenuFragment frag:menuFragments) {
+			frag.adapterMeals.notifyDataSetChanged();
+		}
+		
+		if(savedInstanceState != null) {
+			mTitle = savedInstanceState.getCharSequence("title");
+			getSupportActionBar().setTitle(mTitle);
+		}
 		
 	}
+	
+	@Override
+	protected void onResume(){
+		super.onResume();
+		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);        
+		addMensen(sharedPref.getString("city", "Kiel"));
+	}
+	
+	@Override
+    protected void onPostCreate(Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        // Sync the toggle state after onRestoreInstanceState has occurred.
+        mDrawerToggle.syncState();
+    }
+	
+	@Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mDrawerToggle.onConfigurationChanged(newConfig);
+    }
 	
 
 	@Override
@@ -86,7 +184,12 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 	
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
-	    // Handle item selection		
+		// Pass the event to ActionBarDrawerToggle, if it returns
+        // true, then it has handled the app icon touch event
+        if (mDrawerToggle.onOptionsItemSelected(item)) {
+          return true;
+        }		
+		// Handle item selection		
 		switch (item.getItemId()) {
 		case R.id.action_settings:
 			startActivity(new Intent(this, ActivitySettingsPreference.class));
@@ -128,15 +231,20 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 	 * Adds a mensa to list
 	 * @param aName
 	 */
-	public void addMensa(String aName){
-		adapterMensa.add( aName );
+	public void addMensa(String aName, String info){
+		HashMap<String, String> hm = new HashMap<String, String>();
+		hm.put("txtName", aName);
+		hm.put("txtInfo", info);
+		drawerItemsList.add(hm);
+		adapterMensa.notifyDataSetChanged();
 	}
 	
 	/**
 	 * Clears mensa adapter
 	 */
 	public void clearMensaAdapter(){
-		adapterMensa.clear();
+		drawerItemsList.clear();
+		adapterMensa.notifyDataSetChanged();
 	}
 	
 	/**
@@ -153,51 +261,31 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 		return adapterMensa.getCount();
 	}
 	
-	
-	/**
-	 * Loads a website as html plain text string
-	 * @param html
-	 */
-	public void loadWebsiteHtml(String html){
-		webView.loadData(html, "text/html", "UTF-8");
-		webView.reload();
-	}
-	
-	/**
-	 * Sets the loading progress
-	 * @param aProgress
-	 */
-	public void setLoadingProgress(LoadingProgress aProgress){
-		progress = aProgress;
-		if( progress == LoadingProgress.MENUE_LOADED ){
-			layoutLoading.setVisibility( View.GONE );
-		}
-		else {
-			layoutLoading.setVisibility( View.VISIBLE );
+	public void setErrorMealList() {
+		for (MenuFragment fragment:menuFragments) {
+			fragment.listMeals.clear();
+			Meal error = new Meal();
+			error.setMealName("Fehler");
+			fragment.listMeals.add(error);
+			fragment.adapterMeals.notifyDataSetChanged();
 		}
 	}
 	
-	/**
-	 * Sets the lunchtime
-	 * @param lunchTime
-	 */
-	public void setLunchTime(String aLunchTime){
-		final String lunchTime = aLunchTime;
-		txtLunchTime.post( new Runnable() {			
-			@Override
-			public void run() {
-				txtLunchTime.setText( "Mittagessen: " + lunchTime );				
-			}
-		} );
-	}
-	
-	
-	/**
-	 * Adds cities to spinner list
-	 */
-	private void addCities(){
-		setLoadingProgress(LoadingProgress.INIT);
-		new AsyncCitiesLoader(this).execute();
+	public void setMealList(List<Meal> meals) {
+		for(MenuFragment fragment:menuFragments) {
+			fragment.listMeals.clear();
+		}
+
+		int day = -1;
+		if (meals == null) { Log.d("Mensa", "meals==null"); }
+		for (Meal meal:meals) {
+			day = meal.getDay();
+			menuFragments.get(day).listMeals.add(meal);
+		}
+		for(MenuFragment fragment:menuFragments) {
+			fragment.adapterMeals.notifyDataSetChanged();
+		}
+		mMenueFragmentPagerAdapter.notifyDataSetChanged();
 	}
 	
 	/**
@@ -205,7 +293,7 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 	 * @param city
 	 */
 	private void addMensen(String city){
-		setLoadingProgress(LoadingProgress.INIT);
+		//setLoadingProgress(LoadingProgress.INIT);
 		new AsyncMensenLoader(this).execute(city);
 	}
 	
@@ -214,7 +302,12 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 	 * @param mensa
 	 */
 	private void loadMenue(String mensa){
-		setLoadingProgress(LoadingProgress.INIT);
+		Calendar c = Calendar.getInstance(); 
+		int today = c.get(Calendar.DAY_OF_WEEK)-2;
+		if (today < 0 || today > 4) { //Weekend
+			today = 0;
+		}
+		this.mViewPager.setCurrentItem(today, true);
 		new AsyncMenueLoader(this).execute(mensa);
 	}
 	
@@ -222,10 +315,10 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 	 * Loads the menue of the first mensa
 	 */
 	public void loadFirstMensaMenue(){
-		if( spinnerMensa.getCount() > 0 ){
-			setLoadingProgress(LoadingProgress.INIT);
-			spinnerMensa.setSelection(0);
-			loadMenue( spinnerMensa.getItemAtPosition(0).toString() );
+		Log.d("Mensa", "loading First Mensa Menue");
+		if( mDrawerList.getCount() > 0 ){
+			Log.d("Mensa", drawerItemsList.get(0).get("txtName"));
+			loadMenue( drawerItemsList.get(0).get("txtName") );
 		}
 	}
 
@@ -235,12 +328,6 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 		
 		// check which list was selected
 		switch( parent.getId() ){
-		case R.id.lstCity:
-			addMensen( parent.getItemAtPosition(pos).toString() );
-			break;
-		case R.id.lstMensa:
-			loadMenue( parent.getItemAtPosition(pos).toString() );
-			break;
 		default:
 			break;
 		}
@@ -267,18 +354,10 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 
 
 	/**
-	 * @return the spinnerCity
-	 */
-	public Spinner getSpinnerCity() {
-		return spinnerCity;
-	}
-
-
-	/**
 	 * @return the spinnerMensa
 	 */
-	public Spinner getSpinnerMensa() {
-		return spinnerMensa;
+	public ListView getSpinnerMensa() {
+		return mDrawerList;
 	}
 
 
@@ -297,6 +376,18 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 		this.firstSelection = firstSelection;
 	}
 	
+	public static String getWeekdayString(int dayOfWeek) {
+		String weekDay = "";
+		if (0 == dayOfWeek) weekDay = "Montag";
+	    else if (1 == dayOfWeek) weekDay = "Dienstag";
+	    else if (2 == dayOfWeek) weekDay = "Mittwoch";
+	    else if (3 == dayOfWeek) weekDay = "Donnerstag";
+	    else if (4 == dayOfWeek) weekDay = "Freitag";
+	    else if (5 == dayOfWeek) weekDay = "Samstag";
+	    else if (6 == dayOfWeek) weekDay = "Sonntag";
+		return weekDay;
+	}
+	
 	/**
 	 * Cleanup before activity is destroyed
 	 */
@@ -307,13 +398,71 @@ public class ActivityMain extends Activity implements OnItemSelectedListener {
 		SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
 		
 		// save selected city and mensa
-		if( sharedPref.getBoolean("SAVE_LAST_MENSA", false) ){
-			String city = spinnerCity.getSelectedItem().toString();
-			String mensa = spinnerMensa.getSelectedItem().toString();
+		if( sharedPref.getBoolean("SAVE_LAST_MENSA", false) ){      
+			String city = sharedPref.getString("city", "Kiel");
+			String mensa = mDrawerList.getItemAtPosition(mDrawerList.getCheckedItemPosition()).toString();
 			
 			CacheManager.writeChachedFile(this, AsyncCitiesLoader.cachedFileName, city);
 			CacheManager.writeChachedFile(this, AsyncMensenLoader.cachedFileName, mensa);
 		}
 	}
 
+
+	@Override
+	public void onFragmentInteraction(Uri uri) {
+		// TODO Auto-generated method stub
+		
+	}
+	
+	private class DrawerItemClickListener implements ListView.OnItemClickListener {
+	    @Override
+	    public void onItemClick(android.widget.AdapterView parent, View view, int position, long id) {
+			loadMenue( drawerItemsList.get(position).get("txtName") );
+	    	selectDrawerItem(position);
+		    mDrawerLayout.closeDrawer(mDrawer);
+	    }
+	}
+
+	public void selectDrawerItem(int position) {
+	    // Highlight the selected item, update the title, and close the drawer
+	    mDrawerList.setItemChecked(position, true);
+	    setTitle(drawerItemsList.get(position).get("txtName"));
+	}
+
+	@Override
+	public void setTitle(CharSequence title) {
+	    mTitle = title;
+	    getSupportActionBar().setTitle(mTitle);
+	}
+
+	/* Called whenever we call invalidateOptionsMenu() */
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        // If the nav drawer is open, hide action items related to the content view
+        boolean drawerOpen = mDrawerLayout.isDrawerOpen(mDrawer);
+        //menu.findItem(R.id.action_websearch).setVisible(!drawerOpen);
+        return super.onPrepareOptionsMenu(menu);
+    }
+    
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        // Save the user's current game state
+    	savedInstanceState.putCharSequence("title", mTitle);
+        
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+	public void setLoadingProgress(LoadingProgress mensenLoaded) {
+		progress = mensenLoaded;
+		if (mensenLoaded == LoadingProgress.MENUE_LOADED) {
+			for (MenuFragment fragment:menuFragments) {
+				fragment.setProgressBar(false);
+			}
+		} else if (mensenLoaded == LoadingProgress.INIT) {
+			for (MenuFragment fragment:menuFragments) {
+				fragment.setProgressBar(true);
+			}
+		}
+	}
 }

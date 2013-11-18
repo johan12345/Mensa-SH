@@ -65,7 +65,7 @@ public class AsyncCitiesLoader extends AsyncTask<Void, Integer, List<String>> {
 			ctx.addCity(c);
 		}
 		ctx.notifyCityAdapter();
-		ctx.getSpinnerCity().setSelection(getSelection(result));
+		//ctx.getSpinnerCity().setSelection(getSelection(result));
 		ctx.setLoadingProgress(LoadingProgress.CITIES_LOADED);
 	}
 	

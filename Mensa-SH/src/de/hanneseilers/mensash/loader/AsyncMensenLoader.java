@@ -10,6 +10,7 @@ import de.mensa.sh.core.Mensa;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 public class AsyncMensenLoader extends AsyncTask<String, Integer, List<Mensa>> {
 
@@ -78,18 +79,19 @@ public class AsyncMensenLoader extends AsyncTask<String, Integer, List<Mensa>> {
 	@Override
 	protected void onPostExecute(List<Mensa> result) {
 		ctx.setLocations(result);
-		int count = ctx.countMensenInList();
 		
 		// get mensa names
 		ctx.clearMensaAdapter();
 		for(Mensa m : result){
-			ctx.addMensa( m.getName() );
+			ctx.addMensa( m.getName(), m.getLunchTime() );
 		}
 		ctx.notifyMensaAdapter();
-		ctx.getSpinnerMensa().setSelection(getSelection(result));
+		int count = ctx.countMensenInList();
+		ctx.getSpinnerMensa().setItemChecked(getSelection(result), true);
 		ctx.setLoadingProgress(LoadingProgress.MENSEN_LOADED);
 		
 		// check if to programmaticaly load menue
+		Log.d("Mensa", "count: " + count);
 		if(count > 0){
 			ctx.loadFirstMensaMenue();
 		}

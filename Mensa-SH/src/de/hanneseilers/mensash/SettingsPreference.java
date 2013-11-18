@@ -1,10 +1,14 @@
 package de.hanneseilers.mensash;
 
+import org.holoeverywhere.preference.Preference;
+import org.holoeverywhere.preference.Preference.OnPreferenceClickListener;
+import org.holoeverywhere.preference.PreferenceFragment;
+
 import de.hanneseilers.mensash.R;
 import android.os.Bundle;
-import android.preference.Preference;
-import android.preference.Preference.OnPreferenceClickListener;
-import android.preference.PreferenceFragment;
+
+
+
 
 /**
  * Class for preferences
