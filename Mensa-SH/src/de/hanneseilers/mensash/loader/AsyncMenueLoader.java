@@ -9,7 +9,7 @@ import de.mensa.sh.core.Meal;
 import de.mensa.sh.core.Mensa;
 import android.os.AsyncTask;
 
-public class AsyncMenueLoader extends AsyncTask<String, Integer, List<Meal>> {
+public class AsyncMenueLoader extends AsyncTask<Mensa, Integer, List<Meal>> {
 
 	private ActivityMain ctx;
 	private Mensa selectedMensa;
@@ -28,21 +28,13 @@ public class AsyncMenueLoader extends AsyncTask<String, Integer, List<Meal>> {
 	 * Gets cities
 	 */
 	@Override
-	protected List<Meal> doInBackground(String... params) {
+	protected List<Meal> doInBackground(Mensa... params) {
 		
-		// find mensa with params name
-		for( Mensa m : ctx.getLocations() ){
-			if( m.getName().equals(params[0]) ){				
-				selectedMensa = m;
-				List<Meal> meals = m.getMeals();
-				for(Meal meal:meals) {
-					meal.setMensa(m);
-				}
-				return meals;				
-			}
+		List<Meal> meals = params[0].getMeals();
+		for(Meal meal:meals) {
+			meal.loadRating(params[0]);
 		}
-		
-		return null;
+		return meals;				
 	}
 	
 	/**
@@ -57,7 +49,7 @@ public class AsyncMenueLoader extends AsyncTask<String, Integer, List<Meal>> {
 		}
 		
 		// load menue
-		ctx.selectDrawerItem(ctx.locations.indexOf(selectedMensa));
+		//ctx.selectDrawerItem(ctx.locations.indexOf(selectedMensa));
 		ctx.setMealList(result);
 		ctx.setLoadingProgress(LoadingProgress.MENUE_LOADED);
 

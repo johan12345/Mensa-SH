@@ -17,12 +17,14 @@ import org.holoeverywhere.widget.ListView;
 import org.holoeverywhere.widget.ViewPager;
 
 import com.astuetz.PagerSlidingTabStrip;
+import com.google.gson.Gson;
 
 
 
 import de.hanneseilers.mensash.MenuAdapter;
 import de.hanneseilers.mensash.MenuFragment;
 import de.hanneseilers.mensash.MenuFragment.OnFragmentInteractionListener;
+import de.hanneseilers.mensash.DetailActivity;
 import de.hanneseilers.mensash.MenueFragmentPagerAdapter;
 import de.hanneseilers.mensash.R;
 import de.hanneseilers.mensash.CacheManager;
@@ -34,6 +36,7 @@ import de.mensa.sh.core.Meal;
 import de.mensa.sh.core.Mensa;
 import android.net.Uri;
 import android.os.Bundle;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 
@@ -68,6 +71,7 @@ public class ActivityMain extends Activity implements OnItemSelectedListener, On
     private CharSequence mDrawerTitle;
     private CharSequence mTitle;
     private ArrayList<HashMap<String,String>> drawerItemsList = new ArrayList<HashMap<String,String>>();
+    private Mensa selectedMensa;
 	
 	// When requested, this adapter returns a DemoObjectFragment,
     // representing an object in the collection.
@@ -309,7 +313,8 @@ public class ActivityMain extends Activity implements OnItemSelectedListener, On
 	 * Loads a menue of a mensa
 	 * @param mensa
 	 */
-	private void loadMenue(String mensa){
+	private void loadMenue(Mensa mensa){
+		selectedMensa = mensa;
 		Calendar c = Calendar.getInstance(); 
 		int today = c.get(Calendar.DAY_OF_WEEK)-2;
 		if (today < 0 || today > 4) { //Weekend
@@ -327,7 +332,7 @@ public class ActivityMain extends Activity implements OnItemSelectedListener, On
 		if( mDrawerList.getCount() > 0 ){
 			Log.d("Mensa", drawerItemsList.get(0).get("txtName"));
 			mDrawerList.setSelection(0);
-			loadMenue( drawerItemsList.get(0).get("txtName") );
+			loadMenue( locations.get(0) );
 		}
 	}
 
@@ -418,15 +423,18 @@ public class ActivityMain extends Activity implements OnItemSelectedListener, On
 
 
 	@Override
-	public void onFragmentInteraction(Uri uri) {
-		// TODO Auto-generated method stub
-		
+	public void onFragmentInteraction(Meal meal) {
+		Gson gson = new Gson();
+		Intent i = new Intent(this,DetailActivity.class);
+		i.putExtra("Meal", gson.toJson(meal));
+		i.putExtra("Mensa", gson.toJson(selectedMensa));
+		startActivity(i);
 	}
 	
 	private class DrawerItemClickListener implements ListView.OnItemClickListener {
 	    @Override
 	    public void onItemClick(android.widget.AdapterView parent, View view, int position, long id) {
-			loadMenue( drawerItemsList.get(position).get("txtName") );
+			loadMenue( locations.get(position) );
 	    	selectDrawerItem(position);
 		    mDrawerLayout.closeDrawer(mDrawer);
 	    }
@@ -474,4 +482,21 @@ public class ActivityMain extends Activity implements OnItemSelectedListener, On
 			}
 		}
 	}
+	
+	/**
+     * @return Unique id for device
+     */
+    public static String getUniqueDeviceHash(Context context){
+    	/*
+    	 * Getting device ID is not used due to using android id.
+    	 * But still available for fallbacks.
+    	 */
+//    	String hash = "";
+//    	TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+//    	return telephonyManager.getDeviceId();
+    	
+    	return android.provider.Settings.Secure.getString( context.getContentResolver(), 
+    			android.provider.Settings.Secure.ANDROID_ID); 
+
+    }
 }
