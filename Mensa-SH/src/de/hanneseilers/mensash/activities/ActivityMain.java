@@ -16,7 +16,9 @@ import org.holoeverywhere.widget.LinearLayout;
 import org.holoeverywhere.widget.ListView;
 import org.holoeverywhere.widget.ViewPager;
 
-import com.astuetz.viewpager.extensions.PagerSlidingTabStrip;
+import com.astuetz.PagerSlidingTabStrip;
+
+
 
 import de.hanneseilers.mensash.MenuAdapter;
 import de.hanneseilers.mensash.MenuFragment;
@@ -281,8 +283,14 @@ public class ActivityMain extends Activity implements OnItemSelectedListener, On
 		for (Meal meal:meals) {
 			day = meal.getDay();
 			menuFragments.get(day).listMeals.add(meal);
+			Log.d("Mensa", String.valueOf(meal.getRating()));
 		}
 		for(MenuFragment fragment:menuFragments) {
+			if(mDrawerList.getSelectedItemPosition() == -1){
+				fragment.adapterMeals.setMensa(locations.get(0));
+			} else {
+				fragment.adapterMeals.setMensa(locations.get(mDrawerList.getSelectedItemPosition()));
+			}
 			fragment.adapterMeals.notifyDataSetChanged();
 		}
 		mMenueFragmentPagerAdapter.notifyDataSetChanged();
@@ -318,6 +326,7 @@ public class ActivityMain extends Activity implements OnItemSelectedListener, On
 		Log.d("Mensa", "loading First Mensa Menue");
 		if( mDrawerList.getCount() > 0 ){
 			Log.d("Mensa", drawerItemsList.get(0).get("txtName"));
+			mDrawerList.setSelection(0);
 			loadMenue( drawerItemsList.get(0).get("txtName") );
 		}
 	}

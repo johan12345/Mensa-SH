@@ -34,7 +34,11 @@ public class AsyncMenueLoader extends AsyncTask<String, Integer, List<Meal>> {
 		for( Mensa m : ctx.getLocations() ){
 			if( m.getName().equals(params[0]) ){				
 				selectedMensa = m;
-				return m.getMeals();				
+				List<Meal> meals = m.getMeals();
+				for(Meal meal:meals) {
+					meal.setMensa(m);
+				}
+				return meals;				
 			}
 		}
 		

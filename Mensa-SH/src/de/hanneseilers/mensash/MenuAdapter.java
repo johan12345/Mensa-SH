@@ -3,6 +3,7 @@ package de.hanneseilers.mensash;
 import java.util.List;
 
 import org.holoeverywhere.LayoutInflater;
+
 import org.holoeverywhere.widget.ArrayAdapter;
 import org.holoeverywhere.widget.TextView;
 
@@ -11,12 +12,15 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.RatingBar;
 
 import de.mensa.sh.core.Meal;
+import de.mensa.sh.core.Mensa;
 
 public class MenuAdapter extends ArrayAdapter<Meal> {
 	  private final Context context;
 	  private final List<Meal> values;
+	  private Mensa mensa;
 
 //	  public MenuAdapter(Context context, Meal[] values) {
 //	    super(context, R.layout.menu_list_item, values);
@@ -43,6 +47,7 @@ public class MenuAdapter extends ArrayAdapter<Meal> {
 	    ImageView imgPork = (ImageView) rowView.findViewById(R.id.imgPork);
 	    ImageView imgVegetarian = (ImageView) rowView.findViewById(R.id.imgVegetarian);
 	    ImageView imgVegan = (ImageView) rowView.findViewById(R.id.imgVegan);
+	    RatingBar rating = (RatingBar) rowView.findViewById(R.id.ratingBar);
 	    
 	    txtName.setText(values.get(position).getDate() + values.get(position).getMealName());
 	    txtInfo.setText(values.get(position).getPrice());
@@ -52,6 +57,14 @@ public class MenuAdapter extends ArrayAdapter<Meal> {
 	    imgPork.setVisibility(values.get(position).isPig() ? View.VISIBLE : View.GONE);
 	    imgVegetarian.setVisibility(values.get(position).isVegetarian() ? View.VISIBLE : View.GONE);
 	    imgVegan.setVisibility(values.get(position).isVegan() ? View.VISIBLE : View.GONE);
+	    
+	    if(values.get(position).getRating() < 0) {
+	    	rating.setVisibility(View.INVISIBLE);
+	    } else {
+	    	rating.setVisibility(View.VISIBLE);
+	    	rating.setRating(values.get(position).getRating());
+	    }
+		Log.d("Mensa", "rating "+ String.valueOf(values.get(position).getRating()));
 
 	    return rowView;
 	  }
@@ -59,5 +72,9 @@ public class MenuAdapter extends ArrayAdapter<Meal> {
 	  @Override
 	  public int getCount() {
 		  return values.size();
+	  }
+	  
+	  public void setMensa(Mensa mensa) {
+		  this.mensa = mensa;
 	  }
 	} 
