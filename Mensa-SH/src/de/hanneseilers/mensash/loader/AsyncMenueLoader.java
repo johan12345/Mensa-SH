@@ -1,5 +1,6 @@
 package de.hanneseilers.mensash.loader;
 
+import java.util.Hashtable;
 import java.util.List;
 
 import de.hanneseilers.mensash.CacheManager;
@@ -31,8 +32,14 @@ public class AsyncMenueLoader extends AsyncTask<Mensa, Integer, List<Meal>> {
 	protected List<Meal> doInBackground(Mensa... params) {
 		
 		List<Meal> meals = params[0].getMeals();
+		Hashtable<String, Integer> ratings = params[0].getRatings(meals);
 		for(Meal meal:meals) {
-			meal.loadRating(params[0]);
+			String key = meal.getKey();
+			int rating = -1;
+			if( ratings.containsKey(key) ){
+				rating = ratings.get(key);						
+			}
+			meal.setRating(rating);
 		}
 		return meals;				
 	}

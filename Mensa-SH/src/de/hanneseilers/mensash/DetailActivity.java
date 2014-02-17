@@ -62,10 +62,7 @@ public class DetailActivity extends Activity {
 	    imgVegetarian.setVisibility(meal.isVegetarian() ? View.VISIBLE : View.GONE);
 	    imgVegan.setVisibility(meal.isVegan() ? View.VISIBLE : View.GONE);
 	    
-	    if(meal.getRating() < 0) {
-	    	rating.setVisibility(View.INVISIBLE);
-	    } else {
-	    	rating.setVisibility(View.VISIBLE);
+	    if(meal.getRating() >= 0) {
 	    	rating.setRating(meal.getRating());
 	    }
 	    
